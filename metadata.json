@@ -1,0 +1,6 @@
+{
+  "name": "ব্যয় ট্র্যাকার (Expense Tracker)",
+  "description": "একটি আধুনিক এবং সহজ ব্যয় ট্র্যাকার অ্যাপ্লিকেশন যা ক্লাউড সিঙ্ক এবং ফায়ারবেস সিকিউরিটি দ্বারা আপনার তথ্য সুরক্ষিত রাখে।",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

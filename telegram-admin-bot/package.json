@@ -1,0 +1,14 @@
+{
+  "name": "telegram-admin-bot",
+  "version": "1.0.0",
+  "description": "Telegram Admin Bot for Expense Tracker",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js"
+  },
+  "dependencies": {
+    "telegraf": "^4.16.0",
+    "firebase-admin": "^12.0.0",
+    "dotenv": "^16.4.5"
+  }
+}

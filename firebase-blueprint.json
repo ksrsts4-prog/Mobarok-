@@ -1,0 +1,224 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User profile and settings",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "name": { "type": "string", "description": "User's display name" },
+        "email": { "type": "string", "format": "email", "description": "User's email address" },
+        "role": { "type": "string", "enum": ["admin", "user"], "description": "User's role" },
+        "currency": { "type": "string", "description": "Preferred currency symbol" },
+        "isDarkMode": { "type": "boolean", "description": "Dark mode preference" },
+        "language": { "type": "string", "enum": ["bn", "en"], "description": "Preferred language" },
+        "defaultTransactionType": { "type": "string", "enum": ["income", "expense"], "description": "Default transaction type" },
+        "weekStartDay": { "type": "string", "enum": ["sunday", "monday"], "description": "Week start day" },
+        "budgetAlerts": { "type": "boolean", "description": "Budget alert preference" },
+        "dailyReminders": { "type": "boolean", "description": "Daily reminder preference" },
+        "isBiometricEnabled": { "type": "boolean", "description": "Biometric lock preference" }
+      },
+      "required": ["uid", "name", "email", "role"]
+    },
+    "Transaction": {
+      "title": "Transaction",
+      "description": "A financial transaction (income or expense)",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "amount": { "type": "number" },
+        "type": { "type": "string", "enum": ["income", "expense"] },
+        "categoryId": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "note": { "type": "string" },
+        "tags": { "type": "array" },
+        "receiptUrl": { "type": "string" },
+        "familyMemberId": { "type": "string" },
+        "uid": { "type": "string" }
+      },
+      "required": ["id", "amount", "type", "categoryId", "date", "uid"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "A category for transactions",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "icon": { "type": "string" },
+        "color": { "type": "string" },
+        "type": { "type": "string", "enum": ["income", "expense"] },
+        "uid": { "type": "string" }
+      },
+      "required": ["id", "name", "icon", "color", "type", "uid"]
+    },
+    "Budget": {
+      "title": "Budget",
+      "description": "A budget for a specific category",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "categoryId": { "type": "string" },
+        "amount": { "type": "number" },
+        "period": { "type": "string", "enum": ["monthly", "yearly"] },
+        "uid": { "type": "string" }
+      },
+      "required": ["id", "categoryId", "amount", "period", "uid"]
+    },
+    "SavingsGoal": {
+      "title": "Savings Goal",
+      "description": "A goal for saving money",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "target": { "type": "number" },
+        "current": { "type": "number" },
+        "icon": { "type": "string" },
+        "color": { "type": "string" },
+        "uid": { "type": "string" }
+      },
+      "required": ["id", "name", "target", "current", "icon", "color", "uid"]
+    },
+    "RecurringTransaction": {
+      "title": "Recurring Transaction",
+      "description": "A transaction that happens periodically",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "amount": { "type": "number" },
+        "type": { "type": "string", "enum": ["income", "expense"] },
+        "categoryId": { "type": "string" },
+        "note": { "type": "string" },
+        "frequency": { "type": "string", "enum": ["daily", "weekly", "monthly", "yearly"] },
+        "nextDate": { "type": "string", "format": "date-time" },
+        "lastProcessed": { "type": "string", "format": "date-time" },
+        "uid": { "type": "string" }
+      },
+      "required": ["id", "amount", "type", "categoryId", "frequency", "nextDate", "uid"]
+    },
+    "Debt": {
+      "title": "Debt",
+      "description": "Borrowed or lent money",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "type": "string", "enum": ["borrowed", "lent"] },
+        "person": { "type": "string" },
+        "amount": { "type": "number" },
+        "remaining": { "type": "number" },
+        "dueDate": { "type": "string", "format": "date-time" },
+        "note": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "uid": { "type": "string" }
+      },
+      "required": ["id", "type", "person", "amount", "remaining", "createdAt", "uid"]
+    },
+    "FamilyMember": {
+      "title": "Family Member",
+      "description": "A member in a shared budget",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "relation": { "type": "string" },
+        "color": { "type": "string" },
+        "uid": { "type": "string" }
+      },
+      "required": ["id", "name", "relation", "color", "uid"]
+    },
+    "Investment": {
+      "title": "Investment",
+      "description": "An investment record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "type": { "type": "string", "enum": ["dps", "fdr", "stocks", "mutual_fund", "bonds", "other"] },
+        "amountInvested": { "type": "number" },
+        "currentValue": { "type": "number" },
+        "startDate": { "type": "string", "format": "date-time" },
+        "maturityDate": { "type": "string", "format": "date-time" },
+        "interestRate": { "type": "number" },
+        "note": { "type": "string" },
+        "uid": { "type": "string" }
+      },
+      "required": ["id", "name", "type", "amountInvested", "currentValue", "startDate", "uid"]
+    },
+    "Bill": {
+      "title": "Bill",
+      "description": "A scheduled bill payment",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "amount": { "type": "number" },
+        "dueDate": { "type": "string", "format": "date-time" },
+        "isPaid": { "type": "boolean" },
+        "category": { "type": "string" },
+        "note": { "type": "string" },
+        "uid": { "type": "string" }
+      },
+      "required": ["id", "name", "amount", "dueDate", "isPaid", "category", "uid"]
+    },
+    "Feedback": {
+      "title": "Feedback",
+      "description": "User feedback and suggestions",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "message": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "uid", "email", "message", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{uid}": {
+      "schema": "User",
+      "description": "User profile documents"
+    },
+    "/users/{uid}/transactions/{transactionId}": {
+      "schema": "Transaction",
+      "description": "User transactions"
+    },
+    "/users/{uid}/categories/{categoryId}": {
+      "schema": "Category",
+      "description": "User custom categories"
+    },
+    "/users/{uid}/budgets/{budgetId}": {
+      "schema": "Budget",
+      "description": "User budgets"
+    },
+    "/users/{uid}/savingsGoals/{goalId}": {
+      "schema": "SavingsGoal",
+      "description": "User savings goals"
+    },
+    "/users/{uid}/recurring/{recurringId}": {
+      "schema": "RecurringTransaction",
+      "description": "User recurring transactions"
+    },
+    "/users/{uid}/debts/{debtId}": {
+      "schema": "Debt",
+      "description": "User debts"
+    },
+    "/users/{uid}/familyMembers/{memberId}": {
+      "schema": "FamilyMember",
+      "description": "User family members"
+    },
+    "/users/{uid}/investments/{investmentId}": {
+      "schema": "Investment",
+      "description": "User investments"
+    },
+    "/users/{uid}/bills/{billId}": {
+      "schema": "Bill",
+      "description": "User bills"
+    },
+    "/feedback/{feedbackId}": {
+      "schema": "Feedback",
+      "description": "Global feedback collection"
+    }
+  }
+}

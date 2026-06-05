@@ -1,0 +1,226 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Primitives
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(uid) { return isSignedIn() && request.auth.uid == uid; }
+
+    function isFeedbackOwner() { return isSignedIn() && request.auth.uid == existing().uid; }
+
+    // User Model Validation
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'name', 'email', 'role']) &&
+             data.uid == request.auth.uid &&
+             data.name is string && data.name.size() <= 100 &&
+             data.email is string && data.email.size() <= 150 &&
+             data.role is string && (data.role == 'admin' || data.role == 'user');
+    }
+
+    match /users/{uid} {
+      allow read: if isOwner(uid) && existing().uid == uid;
+      allow create: if isOwner(uid) && isValidId(uid) && isValidUser(incoming()) && incoming().keys().size() >= 4 && incoming().keys().size() <= 15;
+      allow update: if isOwner(uid) && isValidId(uid) && isValidUser(incoming()) && incoming().uid == existing().uid;
+      allow delete: if isOwner(uid) && existing().uid == uid;
+
+      // --- TRANSACTIONS ---
+      function isValidTransaction(data) {
+        return data.keys().hasAll(['id', 'amount', 'type', 'categoryId', 'date', 'uid']) &&
+               data.uid == request.auth.uid &&
+               data.id is string && data.id.size() <= 128 &&
+               data.amount is number &&
+               data.type is string && (data.type == 'income' || data.type == 'expense') &&
+               data.categoryId is string && data.categoryId.size() <= 128 &&
+               data.date is string && data.date.size() <= 50;
+      }
+
+      match /transactions/{transactionId} {
+        allow read: if isOwner(uid) && existing().uid == uid;
+        allow list: if isOwner(uid) && existing().uid == uid;
+        allow create: if isOwner(uid) && isValidId(transactionId) && isValidTransaction(incoming()) && incoming().id == transactionId && incoming().keys().size() >= 6 && incoming().keys().size() <= 11;
+        allow update: if isOwner(uid) && isValidId(transactionId) && isValidTransaction(incoming()) && incoming().uid == existing().uid;
+        allow delete: if isOwner(uid) && existing().uid == uid;
+      }
+
+      // --- CATEGORIES ---
+      function isValidCategory(data) {
+        return data.keys().hasAll(['id', 'name', 'icon', 'color', 'type', 'uid']) &&
+               data.uid == request.auth.uid &&
+               data.id is string && data.id.size() <= 128 &&
+               data.name is string && data.name.size() <= 100 &&
+               data.icon is string && data.icon.size() <= 50 &&
+               data.color is string && data.color.size() <= 20 &&
+               data.type is string && (data.type == 'income' || data.type == 'expense');
+      }
+
+      match /categories/{categoryId} {
+        allow read: if isOwner(uid) && existing().uid == uid;
+        allow list: if isOwner(uid) && existing().uid == uid;
+        allow create: if isOwner(uid) && isValidId(categoryId) && isValidCategory(incoming()) && incoming().id == categoryId;
+        allow update: if isOwner(uid) && isValidId(categoryId) && isValidCategory(incoming()) && incoming().uid == existing().uid;
+        allow delete: if isOwner(uid) && existing().uid == uid;
+      }
+
+      // --- BUDGETS ---
+      function isValidBudget(data) {
+        return data.keys().hasAll(['id', 'categoryId', 'amount', 'period', 'uid']) &&
+               data.uid == request.auth.uid &&
+               data.id is string && data.id.size() <= 128 &&
+               data.categoryId is string && data.categoryId.size() <= 128 &&
+               data.amount is number &&
+               data.period is string && (data.period == 'monthly' || data.period == 'yearly');
+      }
+
+      match /budgets/{budgetId} {
+        allow read: if isOwner(uid) && existing().uid == uid;
+        allow list: if isOwner(uid) && existing().uid == uid;
+        allow create: if isOwner(uid) && isValidId(budgetId) && isValidBudget(incoming()) && incoming().id == budgetId;
+        allow update: if isOwner(uid) && isValidId(budgetId) && isValidBudget(incoming()) && incoming().uid == existing().uid;
+        allow delete: if isOwner(uid) && existing().uid == uid;
+      }
+
+      // --- SAVINGS GOALS ---
+      function isValidSavingsGoal(data) {
+        return data.keys().hasAll(['id', 'name', 'target', 'current', 'icon', 'color', 'uid']) &&
+               data.uid == request.auth.uid &&
+               data.id is string && data.id.size() <= 128 &&
+               data.name is string && data.name.size() <= 100 &&
+               data.target is number &&
+               data.current is number &&
+               data.icon is string && data.icon.size() <= 50 &&
+               data.color is string && data.color.size() <= 20;
+      }
+
+      match /savingsGoals/{goalId} {
+        allow read: if isOwner(uid) && existing().uid == uid;
+        allow list: if isOwner(uid) && existing().uid == uid;
+        allow create: if isOwner(uid) && isValidId(goalId) && isValidSavingsGoal(incoming()) && incoming().id == goalId;
+        allow update: if isOwner(uid) && isValidId(goalId) && isValidSavingsGoal(incoming()) && incoming().uid == existing().uid;
+        allow delete: if isOwner(uid) && existing().uid == uid;
+      }
+
+      // --- RECURRING TRANSACTIONS ---
+      function isValidRecurringTransaction(data) {
+        return data.keys().hasAll(['id', 'amount', 'type', 'categoryId', 'frequency', 'nextDate', 'uid']) &&
+               data.uid == request.auth.uid &&
+               data.id is string && data.id.size() <= 128 &&
+               data.amount is number &&
+               data.type is string && (data.type == 'income' || data.type == 'expense') &&
+               data.categoryId is string && data.categoryId.size() <= 128 &&
+               data.frequency is string && (data.frequency == 'daily' || data.frequency == 'weekly' || data.frequency == 'monthly' || data.frequency == 'yearly') &&
+               data.nextDate is string && data.nextDate.size() <= 50;
+      }
+
+      match /recurring/{recurringId} {
+        allow read: if isOwner(uid) && existing().uid == uid;
+        allow list: if isOwner(uid) && existing().uid == uid;
+        allow create: if isOwner(uid) && isValidId(recurringId) && isValidRecurringTransaction(incoming()) && incoming().id == recurringId;
+        allow update: if isOwner(uid) && isValidId(recurringId) && isValidRecurringTransaction(incoming()) && incoming().uid == existing().uid;
+        allow delete: if isOwner(uid) && existing().uid == uid;
+      }
+
+      // --- DEBTS ---
+      function isValidDebt(data) {
+        return data.keys().hasAll(['id', 'type', 'person', 'amount', 'remaining', 'createdAt', 'uid']) &&
+               data.uid == request.auth.uid &&
+               data.id is string && data.id.size() <= 128 &&
+               data.type is string && (data.type == 'borrowed' || data.type == 'lent') &&
+               data.person is string && data.person.size() <= 100 &&
+               data.amount is number &&
+               data.remaining is number &&
+               data.createdAt is string && data.createdAt.size() <= 50;
+      }
+
+      match /debts/{debtId} {
+        allow read: if isOwner(uid) && existing().uid == uid;
+        allow list: if isOwner(uid) && existing().uid == uid;
+        allow create: if isOwner(uid) && isValidId(debtId) && isValidDebt(incoming()) && incoming().id == debtId;
+        allow update: if isOwner(uid) && isValidId(debtId) && isValidDebt(incoming()) && incoming().uid == existing().uid;
+        allow delete: if isOwner(uid) && existing().uid == uid;
+      }
+
+      // --- FAMILY MEMBERS ---
+      function isValidFamilyMember(data) {
+        return data.keys().hasAll(['id', 'name', 'relation', 'color', 'uid']) &&
+               data.uid == request.auth.uid &&
+               data.id is string && data.id.size() <= 128 &&
+               data.name is string && data.name.size() <= 100 &&
+               data.relation is string && data.relation.size() <= 50 &&
+               data.color is string && data.color.size() <= 20;
+      }
+
+      match /familyMembers/{memberId} {
+        allow read: if isOwner(uid) && existing().uid == uid;
+        allow list: if isOwner(uid) && existing().uid == uid;
+        allow create: if isOwner(uid) && isValidId(memberId) && isValidFamilyMember(incoming()) && incoming().id == memberId;
+        allow update: if isOwner(uid) && isValidId(memberId) && isValidFamilyMember(incoming()) && incoming().uid == existing().uid;
+        allow delete: if isOwner(uid) && existing().uid == uid;
+      }
+
+      // --- INVESTMENTS ---
+      function isValidInvestment(data) {
+        return data.keys().hasAll(['id', 'name', 'type', 'amountInvested', 'currentValue', 'startDate', 'uid']) &&
+               data.uid == request.auth.uid &&
+               data.id is string && data.id.size() <= 128 &&
+               data.name is string && data.name.size() <= 100 &&
+               data.type is string && (data.type == 'dps' || data.type == 'fdr' || data.type == 'stocks' || data.type == 'mutual_fund' || data.type == 'bonds' || data.type == 'other') &&
+               data.amountInvested is number &&
+               data.currentValue is number &&
+               data.startDate is string && data.startDate.size() <= 50;
+      }
+
+      match /investments/{investmentId} {
+        allow read: if isOwner(uid) && existing().uid == uid;
+        allow list: if isOwner(uid) && existing().uid == uid;
+        allow create: if isOwner(uid) && isValidId(investmentId) && isValidInvestment(incoming()) && incoming().id == investmentId;
+        allow update: if isOwner(uid) && isValidId(investmentId) && isValidInvestment(incoming()) && incoming().uid == existing().uid;
+        allow delete: if isOwner(uid) && existing().uid == uid;
+      }
+
+      // --- BILLS ---
+      function isValidBill(data) {
+        return data.keys().hasAll(['id', 'name', 'amount', 'dueDate', 'isPaid', 'category', 'uid']) &&
+               data.uid == request.auth.uid &&
+               data.id is string && data.id.size() <= 128 &&
+               data.name is string && data.name.size() <= 100 &&
+               data.amount is number &&
+               data.dueDate is string && data.dueDate.size() <= 50 &&
+               data.isPaid is bool &&
+               data.category is string && data.category.size() <= 128;
+      }
+
+      match /bills/{billId} {
+        allow read: if isOwner(uid) && existing().uid == uid;
+        allow list: if isOwner(uid) && existing().uid == uid;
+        allow create: if isOwner(uid) && isValidId(billId) && isValidBill(incoming()) && incoming().id == billId;
+        allow update: if isOwner(uid) && isValidId(billId) && isValidBill(incoming()) && incoming().uid == existing().uid;
+        allow delete: if isOwner(uid) && existing().uid == uid;
+      }
+    }
+
+    // --- FEEDBACK ---
+    function isValidFeedback(data) {
+      return data.keys().hasAll(['id', 'uid', 'email', 'message', 'createdAt']) &&
+             data.uid == request.auth.uid &&
+             data.id is string && data.id.size() <= 128 &&
+             data.email is string && data.email.size() <= 150 &&
+             data.message is string && data.message.size() <= 5000 &&
+             data.createdAt is string && data.createdAt.size() <= 50;
+    }
+
+    match /feedback/{feedbackId} {
+      allow read: if isFeedbackOwner();
+      allow list: if isFeedbackOwner() || existing().uid == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(feedbackId) && isValidFeedback(incoming()) && incoming().id == feedbackId;
+      allow update: if false; // Feedback is immutable
+      allow delete: if isFeedbackOwner();
+    }
+  }
+}

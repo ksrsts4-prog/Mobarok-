@@ -1,0 +1,385 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: {uid}
+    // Fields:
+    //   - uid: string (required) - Firebase Auth UID
+    //   - name: string (required) - User's display name
+    //   - email: string (required, format: email) - User's email address
+    //   - role: string (required, enum: ['admin', 'user']) - User's role
+    //   - currency: string (optional) - Preferred currency symbol
+    //   - isDarkMode: boolean (optional) - Dark mode preference
+    //   - language: string (optional, enum: ['bn', 'en']) - Preferred language
+    //   - defaultTransactionType: string (optional, enum: ['income', 'expense']) - Default transaction type
+    //   - weekStartDay: string (optional, enum: ['sunday', 'monday']) - Week start day
+    //   - budgetAlerts: boolean (optional) - Budget alert preference
+    //   - dailyReminders: boolean (optional) - Daily reminder preference
+    //   - isBiometricEnabled: boolean (optional) - Biometric lock preference
+    //
+    // Collection: users/{uid}/transactions
+    // Document ID: {transactionId}
+    // Fields:
+    //   - id: string (required)
+    //   - amount: number (required, positive)
+    //   - type: string (required, enum: ['income', 'expense'])
+    //   - categoryId: string (required)
+    //   - date: string (required, format: ISO 8601)
+    //   - note: string (optional)
+    //   - uid: string (required) - Must match parent uid
+    //
+    // Collection: users/{uid}/categories
+    // Document ID: {categoryId}
+    // Fields:
+    //   - id: string (required)
+    //   - name: string (required)
+    //   - icon: string (required)
+    //   - color: string (required)
+    //   - type: string (required, enum: ['income', 'expense'])
+    //   - uid: string (required) - Must match parent uid
+    //
+    // Collection: users/{uid}/budgets
+    // Document ID: {budgetId}
+    // Fields:
+    //   - id: string (required)
+    //   - categoryId: string (required)
+    //   - amount: number (required, positive)
+    //   - period: string (required, enum: ['monthly', 'yearly'])
+    //   - uid: string (required) - Must match parent uid
+    //
+    // Collection: users/{uid}/savingsGoals
+    // Document ID: {goalId}
+    // Fields:
+    //   - id: string (required)
+    //   - name: string (required)
+    //   - target: number (required, positive)
+    //   - current: number (required, non-negative)
+    //   - icon: string (required)
+    //   - color: string (required)
+    //   - uid: string (required) - Must match parent uid
+    //
+    // Collection: feedback
+    // Document ID: {feedbackId}
+    // Fields:
+    //   - id: string (required)
+    //   - uid: string (required)
+    //   - email: string (required, format: email)
+    //   - message: string (required, max 1000 chars)
+    //   - createdAt: string (required, format: ISO 8601)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (
+          request.auth.token.email == "ksrsts4@gmail.com" ||
+          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+        );
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidDateString(dateStr) {
+      return dateStr is string && (
+        dateStr.matches("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.*Z?$") ||
+        dateStr.matches("^\\d{4}-\\d{2}-\\d{2}$") ||
+        dateStr.matches("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}$")
+      );
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidUser(data, uid) {
+      return hasRequiredFields(['uid', 'name', 'email', 'role']) &&
+             data.uid == uid &&
+             data.uid is string && data.uid.size() > 0 &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             isValidEmail(data.email) &&
+             data.role in ['admin', 'user'] &&
+             (!('currency' in data) || data.currency is string) &&
+             (!('isDarkMode' in data) || data.isDarkMode is bool) &&
+             (!('language' in data) || data.language in ['bn', 'en']) &&
+             (!('defaultTransactionType' in data) || data.defaultTransactionType in ['income', 'expense']) &&
+             (!('weekStartDay' in data) || data.weekStartDay in ['sunday', 'monday']) &&
+             (!('budgetAlerts' in data) || data.budgetAlerts is bool) &&
+             (!('dailyReminders' in data) || data.dailyReminders is bool) &&
+             (!('isBiometricEnabled' in data) || data.isBiometricEnabled is bool) &&
+             (!('allowedSessionId' in data) || data.allowedSessionId is string) &&
+             (!('accentColor' in data) || data.accentColor is string) &&
+             (!('showDecimals' in data) || data.showDecimals is bool) &&
+             (!('autoBackup' in data) || data.autoBackup is bool) &&
+             (!('pinCode' in data) || data.pinCode is string || data.pinCode == null) &&
+             (!('isPremium' in data) || data.isPremium is bool) &&
+             (!('aiInstructions' in data) || data.aiInstructions is string);
+    }
+
+    function isValidTransaction(data, uid) {
+      return hasRequiredFields(['id', 'amount', 'type', 'categoryId', 'date', 'uid']) &&
+             data.id is string && data.id.size() > 0 &&
+             data.amount is number && data.amount >= 0 &&
+             data.type in ['income', 'expense'] &&
+             data.categoryId is string &&
+             isValidDateString(data.date) &&
+             data.uid == uid &&
+             (!('note' in data) || (data.note is string && data.note.size() <= 500)) &&
+             (!('tags' in data) || data.tags is list) &&
+             (!('receiptUrl' in data) || data.receiptUrl is string) &&
+             (!('familyMemberId' in data) || data.familyMemberId is string);
+    }
+
+    function isValidCategory(data, uid) {
+      return hasRequiredFields(['id', 'name', 'icon', 'color', 'type', 'uid']) &&
+             data.id is string &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 50 &&
+             data.icon is string &&
+             data.color is string &&
+             data.type in ['income', 'expense'] &&
+             data.uid == uid;
+    }
+
+    function isValidBudget(data, uid) {
+      return hasRequiredFields(['id', 'categoryId', 'amount', 'period', 'uid']) &&
+             data.id is string &&
+             data.categoryId is string &&
+             data.amount is number && data.amount > 0 &&
+             data.period in ['monthly', 'yearly'] &&
+             data.uid == uid;
+    }
+
+    function isValidSavingsGoal(data, uid) {
+      return hasRequiredFields(['id', 'name', 'target', 'current', 'icon', 'color', 'uid']) &&
+             data.id is string &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.target is number && data.target > 0 &&
+             data.current is number && data.current >= 0 &&
+             data.icon is string &&
+             data.color is string &&
+             data.uid == uid;
+    }
+
+    function isValidRecurringTransaction(data, uid) {
+      return hasRequiredFields(['id', 'amount', 'type', 'categoryId', 'frequency', 'nextDate', 'uid']) &&
+             data.id is string &&
+             data.amount is number && data.amount >= 0 &&
+             data.type in ['income', 'expense'] &&
+             data.categoryId is string &&
+             data.frequency in ['daily', 'weekly', 'monthly', 'yearly'] &&
+             isValidDateString(data.nextDate) &&
+             data.uid == uid &&
+             (!('note' in data) || data.note is string) &&
+             (!('lastProcessed' in data) || isValidDateString(data.lastProcessed));
+    }
+
+    function isValidDebt(data, uid) {
+      return hasRequiredFields(['id', 'type', 'person', 'amount', 'remaining', 'createdAt', 'uid']) &&
+             data.id is string &&
+             data.type in ['borrowed', 'lent'] &&
+             data.person is string && data.person.size() > 0 &&
+             data.amount is number && data.amount > 0 &&
+             data.remaining is number && data.remaining >= 0 &&
+             isValidDateString(data.createdAt) &&
+             data.uid == uid &&
+             (!('note' in data) || data.note is string) &&
+             (!('dueDate' in data) || isValidDateString(data.dueDate));
+    }
+
+    function isValidFamilyMember(data, uid) {
+      return hasRequiredFields(['id', 'name', 'relation', 'color', 'uid']) &&
+             data.id is string &&
+             data.name is string && data.name.size() > 0 &&
+             data.relation is string &&
+             data.color is string &&
+             data.uid == uid;
+    }
+
+    function isValidInvestment(data, uid) {
+      return hasRequiredFields(['id', 'name', 'type', 'amountInvested', 'currentValue', 'startDate', 'uid']) &&
+             data.id is string &&
+             data.name is string && data.name.size() > 0 &&
+             data.type in ['dps', 'fdr', 'stocks', 'mutual_fund', 'bonds', 'other'] &&
+             data.amountInvested is number && data.amountInvested >= 0 &&
+             data.currentValue is number && data.currentValue >= 0 &&
+             isValidDateString(data.startDate) &&
+             data.uid == uid &&
+             (!('maturityDate' in data) || isValidDateString(data.maturityDate)) &&
+             (!('interestRate' in data) || data.interestRate is number) &&
+             (!('note' in data) || data.note is string);
+    }
+
+    function isValidBill(data, uid) {
+      return hasRequiredFields(['id', 'name', 'amount', 'dueDate', 'isPaid', 'category', 'uid']) &&
+             data.id is string &&
+             data.name is string && data.name.size() > 0 &&
+             data.amount is number && data.amount >= 0 &&
+             isValidDateString(data.dueDate) &&
+             data.isPaid is bool &&
+             data.category is string &&
+             data.uid == uid &&
+             (!('note' in data) || data.note is string);
+    }
+
+    function isValidFeedback(data) {
+      return hasRequiredFields(['id', 'uid', 'email', 'message', 'createdAt']) &&
+             data.id is string &&
+             data.uid is string &&
+             isValidEmail(data.email) &&
+             data.message is string && data.message.size() > 0 && data.message.size() <= 1000 &&
+             isValidDateString(data.createdAt) &&
+             (!('reply' in data) || (data.reply is string && data.reply.size() <= 1000)) &&
+             (!('repliedAt' in data) || isValidDateString(data.repliedAt));
+    }
+
+    function isValidAnnouncement(data) {
+      return hasRequiredFields(['title', 'message', 'type', 'createdAt']) &&
+             data.title is string && data.title.size() > 0 &&
+             data.message is string && data.message.size() > 0 &&
+             data.type in ['info', 'warning', 'success', 'error'];
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /{path=**}/transactions/{transactionId} {
+      allow read: if isAdmin();
+    }
+
+    match /users/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow create: if isAuthenticated() && isValidUser(request.resource.data, uid) && (isOwner(uid) || isAdmin()) && (
+        isAdmin() || 
+        request.auth.token.email == 'ksrsts4@gmail.com' || 
+        (
+          request.resource.data.role == 'user' && 
+          request.resource.data.get('isPremium', false) == false &&
+          request.resource.data.uid == request.auth.uid
+        )
+      );
+      allow update: if isAuthenticated() && isValidUser(request.resource.data, uid) && (
+        (isAdmin() && (resource.data.email != 'ksrsts4@gmail.com' || (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'email'])))) ||
+        (isOwner(uid) && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'email', 'uid', 'isPremium', 'dailyForecastCount', 'dailyAssistantCount', 'lastForecastDate', 'lastAssistantDate']))
+      );
+      allow delete: if (isOwner(uid) || isAdmin()) && resource.data.email != 'ksrsts4@gmail.com';
+
+      match /transactions/{transactionId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow create: if isOwner(uid) && isValidTransaction(request.resource.data, uid);
+        allow update: if isOwner(uid) && isValidTransaction(request.resource.data, uid);
+        allow delete: if isOwner(uid) || isAdmin();
+      }
+
+      match /categories/{categoryId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow create: if isOwner(uid) && isValidCategory(request.resource.data, uid);
+        allow update: if isOwner(uid) && isValidCategory(request.resource.data, uid);
+        allow delete: if isOwner(uid) || isAdmin();
+      }
+
+      match /budgets/{budgetId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow create: if isOwner(uid) && isValidBudget(request.resource.data, uid);
+        allow update: if isOwner(uid) && isValidBudget(request.resource.data, uid);
+        allow delete: if isOwner(uid) || isAdmin();
+      }
+
+      match /savingsGoals/{goalId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow create: if isOwner(uid) && isValidSavingsGoal(request.resource.data, uid);
+        allow update: if isOwner(uid) && isValidSavingsGoal(request.resource.data, uid);
+        allow delete: if isOwner(uid) || isAdmin();
+      }
+
+      match /recurring/{recurringId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow create: if isOwner(uid) && isValidRecurringTransaction(request.resource.data, uid);
+        allow update: if isOwner(uid) && isValidRecurringTransaction(request.resource.data, uid);
+        allow delete: if isOwner(uid) || isAdmin();
+      }
+
+      match /debts/{debtId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow create: if isOwner(uid) && isValidDebt(request.resource.data, uid);
+        allow update: if isOwner(uid) && isValidDebt(request.resource.data, uid);
+        allow delete: if isOwner(uid) || isAdmin();
+      }
+
+      match /familyMembers/{memberId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow create: if isOwner(uid) && isValidFamilyMember(request.resource.data, uid);
+        allow update: if isOwner(uid) && isValidFamilyMember(request.resource.data, uid);
+        allow delete: if isOwner(uid) || isAdmin();
+      }
+
+      match /investments/{investmentId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow create: if isOwner(uid) && isValidInvestment(request.resource.data, uid);
+        allow update: if isOwner(uid) && isValidInvestment(request.resource.data, uid);
+        allow delete: if isOwner(uid) || isAdmin();
+      }
+
+      match /bills/{billId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow create: if isOwner(uid) && isValidBill(request.resource.data, uid);
+        allow update: if isOwner(uid) && isValidBill(request.resource.data, uid);
+        allow delete: if isOwner(uid) || isAdmin();
+      }
+
+      match /chatHistory/{docId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow create, update: if isOwner(uid) && request.resource.data.keys().hasOnly(['messages']) && request.resource.data.messages is list;
+        allow delete: if isOwner(uid) || isAdmin();
+      }
+    }
+
+    match /feedback/{feedbackId} {
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.uid == request.auth.uid);
+      allow create: if isAuthenticated() && isValidFeedback(request.resource.data) && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    match /announcements/{announcementId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAdmin() && isValidAnnouncement(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /systemSettings/{settingId} {
+      allow read: if settingId == 'general' || isAdmin();
+      allow write: if isAdmin();
+    }
+    
+    match /activityLogs/{logId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin();
+      allow update, delete: if false; // Logs are append-only by admins
+    }
+  }
+}
