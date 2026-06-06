@@ -174,6 +174,20 @@ async function startServer() {
       const uid = decodedToken.uid;
 
       if (db) {
+        // SECURITY FIX: Prevent arbitrary users from upgrading themselves for free.
+        // In a real app, this would be an admin-only endpoint or a secure payment webhook.
+        const userDoc = await db.collection("users").doc(uid).get();
+        if (
+          !userDoc.exists ||
+          (userDoc.data()?.role !== "admin" &&
+            decodedToken.email !== "ksrsts4@gmail.com")
+        ) {
+          return res.status(403).json({
+            error:
+              "Forbidden: Manual upgrades require administrative privileges or a secure payment gateway integration.",
+          });
+        }
+
         await db.collection("users").doc(uid).set(
           {
             isPremium: true,
@@ -211,9 +225,40 @@ async function startServer() {
         return res.status(401).json({ error: "Unauthorized: Invalid token" });
       }
 
-      // We skip server-side database limit checks because the server lacks Firestore IAM
-      // permissions in this environment and relies on the client SDK to enforce limits
-      // via client logic and firestore rules.
+      if (db) {
+        const featureType = req.body.featureType || 'assistant';
+        const userDocRef = db.collection('users').doc(uid);
+        const userDoc = await userDocRef.get();
+        if (userDoc.exists) {
+          const userData = userDoc.data();
+          const isPremium = userData?.isPremium || false;
+          const isAdmin = userData?.role === 'admin' || email === 'ksrsts4@gmail.com';
+          const today = new Date().toISOString().split("T")[0];
+          
+          if (!isPremium && !isAdmin) {
+            let limitField = featureType === 'forecast' ? 'dailyForecastCount' : 'dailyAssistantCount';
+            let dateField = featureType === 'forecast' ? 'lastForecastDate' : 'lastAssistantDate';
+            let limitNum = featureType === 'forecast' ? 1 : 10;
+            
+            let count = userData?.[limitField] || 0;
+            let lastDate = userData?.[dateField];
+            
+            if (lastDate !== today) {
+              count = 0;
+            }
+            
+            if (count >= limitNum) {
+              return res.status(429).json({ error: "Daily limit exceeded for free plan. Please upgrade to premium." });
+            }
+            
+            // Allow and Increment
+            await userDocRef.set({
+              [limitField]: count + 1,
+              [dateField]: today
+            }, { merge: true });
+          }
+        }
+      }
 
       const { model, contents, config } = req.body;
       const apiKey = process.env.GEMINI_API_KEY;

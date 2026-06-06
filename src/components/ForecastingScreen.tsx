@@ -78,6 +78,7 @@ export function ForecastingScreen({
       `;
 
       const reqBody = {
+        featureType: 'forecast',
         model: 'gemini-3-flash-preview',
         contents: prompt
       };
@@ -101,11 +102,6 @@ export function ForecastingScreen({
 
       if (isMounted.current) {
         setForecast(response.text || (language === 'bn' ? "দুঃখিত, কোনো পূর্বাভাস তৈরি করা সম্ভব হয়নি।" : "Sorry, could not generate a forecast."));
-      }
-
-      if (!isPremium && onUpdateSettings) {
-        const newCount = lastForecastDate === today ? dailyForecastCount + 1 : 1;
-        await onUpdateSettings({ dailyForecastCount: newCount, lastForecastDate: today });
       }
     } catch (err: any) {
       console.error("Forecast error:", err);

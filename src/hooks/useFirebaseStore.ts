@@ -249,6 +249,13 @@ export function useFirebaseStore() {
           signOut(auth);
           alert(store.language === 'bn' ? 'আপনাকে অন্য একটি ডিভাইস থেকে লগআউট করা হয়েছে।' : 'You have been logged out from another device.');
         }
+        
+        // Sync limits
+        setIsPremium(data.isPremium || false);
+        setDailyForecastCount(data.dailyForecastCount || 0);
+        setLastForecastDate(data.lastForecastDate || null);
+        setDailyAssistantCount(data.dailyAssistantCount || 0);
+        setLastAssistantDate(data.lastAssistantDate || null);
       }
     }, (err) => handleFirestoreError(err, OperationType.GET, `users/${uid}`));
 

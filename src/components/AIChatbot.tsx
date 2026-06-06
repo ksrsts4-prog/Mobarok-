@@ -263,14 +263,14 @@ export function AIChatbot({
     
     // Check limits
     const today = new Date().toISOString().split('T')[0];
-    const remainingFree = isPremium ? 999 : (lastAssistantDate !== today ? 5 : Math.max(0, 5 - dailyAssistantCount));
+    const remainingFree = isPremium ? 999 : (lastAssistantDate !== today ? 10 : Math.max(0, 10 - dailyAssistantCount));
 
     if (!isPremium && remainingFree <= 0) {
        const limitMsg: Message = {
         id: Date.now().toString(),
         text: language === 'bn' 
-          ? 'দুঃখিত, আপনার আজকের ফ্রি লিমিট (৫টি রিকোয়েস্ট) শেষ। দয়া করে আগামীকাল আবার চেষ্টা করুন অথবা আনলিমিটেড অ্যাক্সেস পেতে প্রিমিয়াম আপগ্রেড করুন।' 
-          : 'Sorry, you have reached your daily free limit (5 requests). Please try again tomorrow or upgrade to premium for unlimited access.',
+          ? 'দুঃখিত, আপনার আজকের ফ্রি লিমিট (১০টি রিকোয়েস্ট) শেষ। দয়া করে আগামীকাল আবার চেষ্টা করুন অথবা আনলিমিটেড অ্যাক্সেস পেতে প্রিমিয়াম আপগ্রেড করুন।' 
+          : 'Sorry, you have reached your daily free limit (10 requests). Please try again tomorrow or upgrade to premium for unlimited access.',
         sender: 'ai',
         timestamp: new Date()
       };
@@ -410,6 +410,7 @@ ${savingsGoals.map(g => `${g.name}: ${currency}${g.current} saved out of ${curre
       };
 
       const reqBody = {
+        featureType: 'assistant',
         model: 'gemini-3-flash-preview',
         contents: { parts: contentsParts },
         config: {
@@ -482,11 +483,6 @@ ${savingsGoals.map(g => `${g.name}: ${currency}${g.current} saved out of ${curre
 
       if (isMounted.current) {
         setMessages(prev => [...prev, aiMsg]);
-      }
-
-      if (!isPremium && onUpdateSettings) {
-        const newCount = lastAssistantDate === today ? dailyAssistantCount + 1 : 1;
-        await onUpdateSettings({ dailyAssistantCount: newCount, lastAssistantDate: today });
       }
 
     } catch (error: any) {

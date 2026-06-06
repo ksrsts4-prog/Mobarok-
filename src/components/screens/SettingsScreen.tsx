@@ -370,7 +370,8 @@ export default function SettingsScreen({
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}` }
           });
-          if (!res.ok) throw new Error('Failed to upgrade via server');
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data?.error || 'Failed to upgrade via server');
         }
         setIsPremium(true);
         alert(language === 'bn' ? 'অভিনন্দন! আপনার পেমেন্ট সফলভাবে যাচাই করা হয়েছে।' : 'Congratulations! Your payment has been verified.');
@@ -378,7 +379,7 @@ export default function SettingsScreen({
         setPaymentStep(1);
         setTrxId('');
       } catch (e: any) {
-        alert(language === 'bn' ? 'আপগ্রেড ব্যর্থ হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।' : 'Upgrade failed. Please try again.');
+        alert(e.message || (language === 'bn' ? 'অ্যাডমিন অনুমতি প্রয়োজন অথবা ট্রানজ্যাকশন আইডি ভুল!' : 'Admin permission required or invalid Transaction ID!'));
         console.warn('Upgrade error:', e);
       } finally {
         setIsProcessingPayment(false);
