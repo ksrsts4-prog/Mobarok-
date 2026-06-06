@@ -138,7 +138,7 @@ export const useAppStore = create<AppState>()(
       setSystemFeatures: (systemFeatures) => set({ systemFeatures }),
       autoBackup: false,
       setAutoBackup: (autoBackup) => set({ autoBackup }),
-      adminPin: '2e5ad9980af6d86f40125576eebb5a2cff4f0e0250cd300bfe669290ec707336', // Hash for 83592
+      adminPin: '2e5ad9980af6d86f40125576eebb5a2cff4f0e0250cd300bfe669290ec707336',
       setAdminPin: (adminPin) => set({ adminPin }),
     }),
     {

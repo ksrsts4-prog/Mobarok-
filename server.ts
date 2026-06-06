@@ -149,7 +149,7 @@ async function startServer() {
       const crypto = await import("crypto");
       const hashedVal = crypto.createHash("sha256").update(pin).digest("hex");
 
-      if (hashedVal === validPin || pin === validPin) {
+      if (hashedVal === validPin) {
         return res.json({ success: true });
       } else {
         return res.status(403).json({ error: "Invalid PIN" });

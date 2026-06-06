@@ -64,11 +64,11 @@ export const PdfTemplate: React.FC<PdfTemplateProps> = ({
     }, {} as Record<string, number>);
   
   const sortedCategories = Object.entries(expensesByCategory)
-    .sort((a, b) => b[1] - a[1])
+    .sort((a, b) => (b[1] as number) - (a[1] as number))
     .slice(0, 5) // top 5
     .map(([id, amount]) => {
       const cat = categories.find(c => c.id === id);
-      return { name: cat ? cat.name : 'Unknown', amount };
+      return { name: cat ? cat.name : 'Unknown', amount: amount as number };
     });
 
   return (
