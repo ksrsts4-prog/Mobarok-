@@ -724,7 +724,7 @@ export function useFirebaseStore() {
         });
         
         if (aiResponse.ok) {
-          const response = await aiResponse.json();
+          const response = await aiResponse.json().catch(() => ({}));
           if (response.text) {
             aiReply = response.text + " [AI Auto Reply]";
             repliedAt = new Date().toISOString();

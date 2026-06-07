@@ -101,11 +101,11 @@ export function BudgetAIAssistant() {
       });
       
       if (!aiResponse.ok) {
-        const errorData = await aiResponse.json().catch(() => ({}));
+        const errorData = await aiResponse.json().catch(() => ({})).catch(() => ({}));
         throw new Error(`Failed to fetch AI response: ${errorData.error || ''} ${errorData.details || ''}`);
       }
       
-      const response = await aiResponse.json();
+      const response = await aiResponse.json().catch(() => ({}));
 
       if (isMounted.current) {
         const aiMsg = {

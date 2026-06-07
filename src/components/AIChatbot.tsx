@@ -433,13 +433,13 @@ ${savingsGoals.map(g => `${g.name}: ${currency}${g.current} saved out of ${curre
       if (!aiResponse.ok) {
         let errMessage = 'Failed to fetch AI response';
         try {
-          const errData = await aiResponse.json();
+          const errData = await aiResponse.json().catch(() => ({}));
           errMessage = `${errData.error || errMessage} ${errData.details || ''}`;
         } catch (e) {}
         throw new Error(errMessage);
       }
       
-      const response = await aiResponse.json();
+      const response = await aiResponse.json().catch(() => ({}));
       
       let replyText = response.text || '';
       

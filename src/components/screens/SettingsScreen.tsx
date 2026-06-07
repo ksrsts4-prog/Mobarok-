@@ -170,7 +170,6 @@ import { auth, db, handleFirestoreError, OperationType } from '../../firebase';
 import { cn, hashPin } from '../../lib/utils';
 import { Type } from '@google/genai';
 import { useAppStore } from '../../store/useAppStore';
-import AboutScreen from '../AboutScreen';
 import { Transaction, Category, Budget, TransactionType, SavingsGoal, RecurringTransaction, Debt, FamilyMember, Investment, Bill, SystemFeatures } from '../../types';
 import { DEFAULT_CATEGORIES } from '../../constants';
 

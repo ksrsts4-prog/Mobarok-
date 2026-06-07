@@ -228,11 +228,11 @@ Task: Analyze the feedback and write a professional, supportive, and context-awa
       });
       
       if (!aiResponse.ok) {
-        const errData = await aiResponse.json().catch(() => ({}));
+        const errData = await aiResponse.json().catch(() => ({})).catch(() => ({}));
         throw new Error(`Failed to generate AI reply: ${errData.error || ''} ${errData.details || ''}`);
       }
       
-      const response = await aiResponse.json();
+      const response = await aiResponse.json().catch(() => ({}));
       
       if (response.text) {
         setReplyTexts(prev => ({ ...prev, [feedbackItem.id]: response.text.trim() }));

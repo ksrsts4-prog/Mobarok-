@@ -170,19 +170,6 @@ import { auth, db, handleFirestoreError, OperationType } from '../../firebase';
 import { cn } from '../../lib/utils';
 import { Type } from '@google/genai';
 import { useAppStore } from '../../store/useAppStore';
-import { AIChatbot } from '../AIChatbot';
-import { BudgetAIAssistant } from '../BudgetAIAssistant';
-import { AIFinancialSummary } from '../AIFinancialSummary';
-import { RecurringTransactionsScreen } from '../RecurringTransactionsScreen';
-import { DebtsScreen } from '../DebtsScreen';
-import { FamilyBudgetScreen } from '../FamilyBudgetScreen';
-import { BillsScreen } from '../BillsScreen';
-import { InvestmentsScreen } from '../InvestmentsScreen';
-import { ForecastingScreen } from '../ForecastingScreen';
-import { GamificationScreen } from '../GamificationScreen';
-import { SplitBillsScreen } from '../SplitBillsScreen';
-import { AdminPanelScreen } from '../AdminPanelScreen';
-import AboutScreen from '../AboutScreen';
 import { Transaction, Category, Budget, TransactionType, SavingsGoal, RecurringTransaction, Debt, FamilyMember, Investment, Bill, SystemFeatures } from '../../types';
 import { DEFAULT_CATEGORIES } from '../../constants';
 
@@ -372,11 +359,11 @@ export default function TransactionModal({ onClose, onSave, categories, initialD
       });
       
       if (!aiResponse.ok) {
-        const errorData = await aiResponse.json().catch(() => ({}));
+        const errorData = await aiResponse.json().catch(() => ({})).catch(() => ({}));
         throw new Error(`Failed to fetch AI response: ${errorData.error || ''} ${errorData.details || ''}`);
       }
       
-      const response = await aiResponse.json();
+      const response = await aiResponse.json().catch(() => ({}));
 
       const text = response.text || "{}";
       const data = JSON.parse(text);

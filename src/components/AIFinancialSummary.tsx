@@ -95,12 +95,12 @@ Budgets: ${budgetStatus || 'No budgets set'}
       });
       
       if (!aiResponse.ok) {
-        const errData = await aiResponse.json().catch(() => ({}));
+        const errData = await aiResponse.json().catch(() => ({})).catch(() => ({}));
         console.error("Backend Error:", errData);
         throw new Error(`${errData.error || 'Failed to fetch AI response'} ${errData.details || ''}`);
       }
       
-      const response = await aiResponse.json();
+      const response = await aiResponse.json().catch(() => ({}));
 
       if (isMounted.current) {
         setSummary(response.text || null);
