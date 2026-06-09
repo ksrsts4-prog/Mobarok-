@@ -710,7 +710,7 @@ export function useFirebaseStore() {
     
     if (store.systemFeatures.aiAutoReply) {
       try {
-        const token = await import('../firebase').then(m => m.auth.currentUser?.getIdToken());
+        const token = await auth.currentUser?.getIdToken();
         const aiResponse = await fetch('/api/gemini/generate', {
           method: 'POST',
           headers: { 

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { MessageSquare, X, Send, Bot, User, Loader2, Volume2, VolumeX, Trash2, Image as ImageIcon, Mic, MicOff } from 'lucide-react';
 import { Type } from '@google/genai';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db, auth } from '../firebase';
 import { cn } from '../lib/utils';
 import { Transaction, Budget, Category, SavingsGoal } from '../types';
 import { useAppStore } from '../store/useAppStore';
@@ -420,7 +420,7 @@ ${savingsGoals.map(g => `${g.name}: ${currency}${g.current} saved out of ${curre
         }
       };
 
-      const token = await import('../firebase').then(m => m.auth.currentUser?.getIdToken());
+      const token = await auth.currentUser?.getIdToken();
       const aiResponse = await fetch('/api/gemini/generate', {
         method: 'POST',
         headers: { 

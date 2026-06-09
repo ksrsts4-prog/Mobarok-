@@ -330,7 +330,7 @@ export default function TransactionModal({ onClose, onSave, categories, initialD
 
       const prompt = "Analyze this receipt/memo image. Extract the total amount, a brief description of what was bought or the store name as note, and the date.";
 
-      const token = await import('../../firebase').then(m => m.auth.currentUser?.getIdToken());
+      const token = await auth.currentUser?.getIdToken();
       const aiResponse = await fetch('/api/gemini/generate', {
         method: 'POST',
         headers: { 

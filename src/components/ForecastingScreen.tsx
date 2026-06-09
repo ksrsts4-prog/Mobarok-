@@ -1,3 +1,4 @@
+import { auth } from '../firebase';
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import { Sparkles, TrendingUp, AlertCircle, Loader2, BrainCircuit, ArrowRight, Crown, Lock } from 'lucide-react';
@@ -83,7 +84,7 @@ export function ForecastingScreen({
         contents: prompt
       };
 
-      const token = await import('../firebase').then(m => m.auth.currentUser?.getIdToken());
+      const token = await auth.currentUser?.getIdToken();
       const aiResponse = await fetch('/api/gemini/generate', {
         method: 'POST',
         headers: { 

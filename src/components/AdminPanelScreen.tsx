@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 import { cn, hashPin } from '../lib/utils';
 import { format, parseISO } from 'date-fns';
-import { db, handleFirestoreError, OperationType } from '../firebase';
+import { auth, db, handleFirestoreError, OperationType } from '../firebase';
 import { collection, getDocs, doc, query, orderBy, addDoc, serverTimestamp, deleteDoc, updateDoc, onSnapshot, setDoc, limit, startAfter, collectionGroup, getAggregateFromServer, sum, count, where } from 'firebase/firestore';
 import { SystemFeatures } from '../types';
 import { useAppStore } from '../store/useAppStore';
@@ -214,7 +214,7 @@ User Context:
 
 Task: Analyze the feedback and write a professional, supportive, and context-aware response providing actionable solutions. Answer in the user's language preference. Keep it concise.`;
 
-      const token = await import('../firebase').then(m => m.auth.currentUser?.getIdToken());
+      const token = await auth.currentUser?.getIdToken();
       const aiResponse = await fetch('/api/gemini/generate', {
         method: 'POST',
         headers: { 
@@ -907,7 +907,7 @@ Task: Analyze the feedback and write a professional, supportive, and context-awa
                           setNewAdminPin('');
                           try {
                             const { doc, setDoc } = await import('firebase/firestore');
-                            const { db } = await import('../firebase');
+                            
                             await setDoc(doc(db, 'systemSettings', 'security'), { adminPin: hashed }, { merge: true });
                           } catch (e) {
                             console.error("Failed to save PIN to Firestore", e);

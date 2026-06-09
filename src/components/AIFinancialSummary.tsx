@@ -1,3 +1,4 @@
+import { auth } from '../firebase';
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import { Sparkles, RefreshCw, TrendingUp, AlertCircle } from 'lucide-react';
@@ -84,7 +85,7 @@ Budgets: ${budgetStatus || 'No budgets set'}
         }
       };
 
-      const token = await import('../firebase').then(m => m.auth.currentUser?.getIdToken());
+      const token = await auth.currentUser?.getIdToken();
       const aiResponse = await fetch('/api/gemini/generate', {
         method: 'POST',
         headers: { 
