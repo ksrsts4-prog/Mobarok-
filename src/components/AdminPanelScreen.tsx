@@ -906,8 +906,6 @@ Task: Analyze the feedback and write a professional, supportive, and context-awa
                           setAdminPin(hashed);
                           setNewAdminPin('');
                           try {
-                            const { doc, setDoc } = await import('firebase/firestore');
-                            
                             await setDoc(doc(db, 'systemSettings', 'security'), { adminPin: hashed }, { merge: true });
                           } catch (e) {
                             console.error("Failed to save PIN to Firestore", e);
