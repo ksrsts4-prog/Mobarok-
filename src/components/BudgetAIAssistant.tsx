@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Bot, X, Send, Loader2, Sparkles, User } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Budget, Transaction, Category } from '../types';
+import { useShallow } from 'zustand/react/shallow';
 import { useAppStore } from '../store/useAppStore';
 
 interface BudgetAIAssistantProps {
@@ -17,7 +18,7 @@ interface BudgetAIAssistantProps {
 }
 
 export function BudgetAIAssistant() {
-  const { isDarkMode, language, budgets, transactions, categories, currency, aiInstructions } = useAppStore();
+  const { isDarkMode, language, budgets, transactions, categories, currency, aiInstructions } = useAppStore(useShallow(state => ({ isDarkMode: state.isDarkMode, language: state.language, budgets: state.budgets, transactions: state.transactions, categories: state.categories, currency: state.currency, aiInstructions: state.aiInstructions })));
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<{id: string, text: string, sender: 'user'|'ai'}[]>([]);
   const [input, setInput] = useState('');

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Info, Code, ShieldCheck, Heart, Github, Globe, BookOpen, Rocket, Lock, HelpCircle, Share2, Sparkles, ExternalLink, Mail, Star, FileText, ChevronRight, ChevronDown, Coffee, Wallet, X, RefreshCw, Bug, History, Download, Smartphone, Trash2, MessageCircle, Copy, Check } from 'lucide-react';
 import { cn } from '../lib/utils';
 import pjson from '../../package.json';
+import { useShallow } from 'zustand/react/shallow';
 import { useAppStore } from '../store/useAppStore';
 
 interface AboutScreenProps {
@@ -12,7 +13,7 @@ interface AboutScreenProps {
 }
 
 export default function AboutScreen({ deferredPrompt, handleInstallClick }: AboutScreenProps) {
-  const { language, isDarkMode } = useAppStore();
+  const { language, isDarkMode } = useAppStore(useShallow(state => ({ language: state.language, isDarkMode: state.isDarkMode })));
   const isBn = language === 'bn';
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [activeModal, setActiveModal] = useState<'terms' | 'privacy' | 'releaseNotes' | null>(null);

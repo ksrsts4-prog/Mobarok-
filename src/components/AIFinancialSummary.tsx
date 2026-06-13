@@ -4,6 +4,7 @@ import { motion } from 'motion/react';
 import { Sparkles, RefreshCw, TrendingUp, AlertCircle } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Transaction, Budget, Category } from '../types';
+import { useShallow } from 'zustand/react/shallow';
 import { useAppStore } from '../store/useAppStore';
 
 interface AIFinancialSummaryProps {
@@ -17,7 +18,7 @@ interface AIFinancialSummaryProps {
 }
 
 export function AIFinancialSummary() {
-  const { transactions, budgets, categories, currency, language, isDarkMode, aiInstructions } = useAppStore();
+  const { transactions, budgets, categories, currency, language, isDarkMode, aiInstructions } = useAppStore(useShallow(state => ({ transactions: state.transactions, budgets: state.budgets, categories: state.categories, currency: state.currency, language: state.language, isDarkMode: state.isDarkMode, aiInstructions: state.aiInstructions })));
   const [summary, setSummary] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

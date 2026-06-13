@@ -6,6 +6,7 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { cn } from '../lib/utils';
 import { Transaction, Budget, Category, SavingsGoal } from '../types';
+import { useShallow } from 'zustand/react/shallow';
 import { useAppStore } from '../store/useAppStore';
 
 interface Message {
@@ -39,7 +40,7 @@ export function AIChatbot({
   onAddTransaction, onAddCategory, isPremium,
   dailyAssistantCount = 0, lastAssistantDate, onUpdateSettings
 }: AIChatbotProps) {
-  const { isDarkMode, language, user, aiInstructions, transactions, budgets, categories, savingsGoals, currency } = useAppStore();
+  const { isDarkMode, language, user, aiInstructions, transactions, budgets, categories, savingsGoals, currency } = useAppStore(useShallow(state => ({ isDarkMode: state.isDarkMode, language: state.language, user: state.user, aiInstructions: state.aiInstructions, transactions: state.transactions, budgets: state.budgets, categories: state.categories, savingsGoals: state.savingsGoals, currency: state.currency })));
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {

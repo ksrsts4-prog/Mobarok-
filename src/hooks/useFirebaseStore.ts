@@ -24,12 +24,42 @@ import {
 } from 'firebase/firestore';
 import { auth, db, handleFirestoreError, OperationType } from '../firebase';
 import { useAppStore } from '../store/useAppStore';
+import { useShallow } from 'zustand/react/shallow';
 import { Transaction, Category, Budget, SavingsGoal, RecurringTransaction, Debt, FamilyMember, Investment, Bill, SystemFeatures } from '../types';
 import { DEFAULT_CATEGORIES } from '../constants';
 import { startOfMonth, endOfMonth, isWithinInterval, parseISO } from 'date-fns';
 
 export function useFirebaseStore() {
-  const store = useAppStore();
+  const store = useAppStore(useShallow(state => ({
+  user: state.user,
+  isAdmin: state.isAdmin,
+  language: state.language,
+  autoBackup: state.autoBackup,
+  transactions: state.transactions,
+  bills: state.bills,
+  systemFeatures: state.systemFeatures,
+  setUser: state.setUser,
+  setIsAdmin: state.setIsAdmin,
+  setCurrency: state.setCurrency,
+  setIsDarkMode: state.setIsDarkMode,
+  setLanguage: state.setLanguage,
+  setDefaultTransactionType: state.setDefaultTransactionType,
+  setWeekStartDay: state.setWeekStartDay,
+  setAccentColor: state.setAccentColor,
+  setShowDecimals: state.setShowDecimals,
+  setAiInstructions: state.setAiInstructions,
+  setAutoBackup: state.setAutoBackup,
+  setTransactions: state.setTransactions,
+  setCategories: state.setCategories,
+  setBudgets: state.setBudgets,
+  setSavingsGoals: state.setSavingsGoals,
+  setRecurringTransactions: state.setRecurringTransactions,
+  setDebts: state.setDebts,
+  setFamilyMembers: state.setFamilyMembers,
+  setInvestments: state.setInvestments,
+  setBills: state.setBills,
+  setSystemFeatures: state.setSystemFeatures
+})));
   
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
@@ -116,7 +146,7 @@ export function useFirebaseStore() {
               pinCode: null,
               isPremium: false
             };
-            await setDoc(userDocRef, newUser);
+            await setDoc(userDocRef, newUser).catch((e:any) => console.error('Offline write error:', e));
             store.setIsAdmin(newUser.role === 'admin' || firebaseUser.email === 'ksrsts4@gmail.com');
             setIsPremium(newUser.isPremium || false);
           } else {
@@ -430,8 +460,8 @@ export function useFirebaseStore() {
     const path = `users/${store.user.uid}/transactions/${id}`;
     const newTx = { ...t, id, uid: store.user.uid } as Transaction;
     try {
-      await setDoc(doc(db, path), newTx);
       store.setTransactions(prev => [newTx, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+      setDoc(doc(db, path), newTx).catch((e:any) => console.error('Offline write error:', e));
     } catch (err) {
       handleFirestoreError(err, OperationType.CREATE, path);
     }
@@ -441,8 +471,8 @@ export function useFirebaseStore() {
     if (!store.user) return;
     const path = `users/${store.user.uid}/transactions/${id}`;
     try {
-      await setDoc(doc(db, path), updated, { merge: true });
       store.setTransactions(prev => prev.map(tx => tx.id === id ? { ...tx, ...updated } as Transaction : tx).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+      setDoc(doc(db, path), updated, { merge: true }).catch((e:any) => console.error('Offline write error:', e));
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, path);
     }
@@ -452,8 +482,8 @@ export function useFirebaseStore() {
     if (!store.user) return;
     const path = `users/${store.user.uid}/transactions/${id}`;
     try {
-      await deleteDoc(doc(db, path));
       store.setTransactions(prev => prev.filter(tx => tx.id !== id));
+      deleteDoc(doc(db, path)).catch((e:any) => console.error(e));
     } catch (err) {
       handleFirestoreError(err, OperationType.DELETE, path);
     }
@@ -464,7 +494,7 @@ export function useFirebaseStore() {
     const path = `users/${store.user.uid}/categories`;
     try {
       const newDoc = doc(collection(db, path));
-      await setDoc(newDoc, { ...cat, id: newDoc.id, uid: store.user.uid });
+      setDoc(newDoc, { ...cat, id: newDoc.id, uid: store.user.uid }).catch((e:any) => console.error('Offline write error:', e));
       return newDoc.id;
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, path);
@@ -475,7 +505,7 @@ export function useFirebaseStore() {
     if (!store.user) return;
     const path = `users/${store.user.uid}/categories/${cat.id}`;
     try {
-      await setDoc(doc(db, path), { ...cat, uid: store.user.uid });
+      setDoc(doc(db, path), { ...cat, uid: store.user.uid }).catch((e:any) => console.error('Offline write error:', e));
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, path);
     }
@@ -485,7 +515,7 @@ export function useFirebaseStore() {
     if (!store.user) return;
     const path = `users/${store.user.uid}/categories/${id}`;
     try {
-      await deleteDoc(doc(db, path));
+      deleteDoc(doc(db, path)).catch((e:any) => console.error(e));
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, path);
     }
@@ -496,7 +526,7 @@ export function useFirebaseStore() {
     const path = `users/${store.user.uid}/budgets`;
     try {
       const newDoc = doc(collection(db, path));
-      await setDoc(newDoc, { ...budget, id: newDoc.id, uid: store.user.uid });
+      setDoc(newDoc, { ...budget, id: newDoc.id, uid: store.user.uid }).catch((e:any) => console.error('Offline write error:', e));
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, path);
     }
@@ -506,7 +536,7 @@ export function useFirebaseStore() {
     if (!store.user) return;
     const path = `users/${store.user.uid}/budgets/${budget.id}`;
     try {
-      await setDoc(doc(db, path), { ...budget, uid: store.user.uid });
+      setDoc(doc(db, path), { ...budget, uid: store.user.uid }).catch((e:any) => console.error('Offline write error:', e));
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, path);
     }
@@ -516,7 +546,7 @@ export function useFirebaseStore() {
     if (!store.user) return;
     const path = `users/${store.user.uid}/budgets/${id}`;
     try {
-      await deleteDoc(doc(db, path));
+      deleteDoc(doc(db, path)).catch((e:any) => console.error('Offline write error:', e));
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, path);
     }
@@ -527,7 +557,7 @@ export function useFirebaseStore() {
     const path = `users/${store.user.uid}/savingsGoals`;
     try {
       const newDoc = doc(collection(db, path));
-      await setDoc(newDoc, { ...goal, id: newDoc.id, uid: store.user.uid });
+      setDoc(newDoc, { ...goal, id: newDoc.id, uid: store.user.uid }).catch((e:any) => console.error('Offline write error:', e));
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, path);
     }
@@ -537,7 +567,7 @@ export function useFirebaseStore() {
     if (!store.user) return;
     const path = `users/${store.user.uid}/savingsGoals/${goal.id}`;
     try {
-      await setDoc(doc(db, path), { ...goal, uid: store.user.uid });
+      setDoc(doc(db, path), { ...goal, uid: store.user.uid }).catch((e:any) => console.error('Offline write error:', e));
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, path);
     }
@@ -547,7 +577,7 @@ export function useFirebaseStore() {
     if (!store.user) return;
     const path = `users/${store.user.uid}/savingsGoals/${id}`;
     try {
-      await deleteDoc(doc(db, path));
+      deleteDoc(doc(db, path)).catch((e:any) => console.error('Offline write error:', e));
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, path);
     }
@@ -558,7 +588,7 @@ export function useFirebaseStore() {
     const id = Date.now().toString();
     const path = `users/${store.user.uid}/recurring/${id}`;
     try {
-      await setDoc(doc(db, path), { ...r, id, uid: store.user.uid });
+      setDoc(doc(db, path), { ...r, id, uid: store.user.uid }).catch((e:any) => console.error('Offline write error:', e));
     } catch (err) {
       handleFirestoreError(err, OperationType.CREATE, path);
     }
@@ -568,7 +598,7 @@ export function useFirebaseStore() {
     if (!store.user) return;
     const path = `users/${store.user.uid}/recurring/${id}`;
     try {
-      await deleteDoc(doc(db, path));
+      deleteDoc(doc(db, path)).catch((e:any) => console.error('Offline write error:', e));
     } catch (err) {
       handleFirestoreError(err, OperationType.DELETE, path);
     }
@@ -579,7 +609,7 @@ export function useFirebaseStore() {
     const id = Date.now().toString();
     const path = `users/${store.user.uid}/debts/${id}`;
     try {
-      await setDoc(doc(db, path), { ...d, id, uid: store.user.uid });
+      setDoc(doc(db, path), { ...d, id, uid: store.user.uid }).catch((e:any) => console.error('Offline write error:', e));
     } catch (err) {
       handleFirestoreError(err, OperationType.CREATE, path);
     }
@@ -589,7 +619,7 @@ export function useFirebaseStore() {
     if (!store.user) return;
     const path = `users/${store.user.uid}/debts/${id}`;
     try {
-      await setDoc(doc(db, path), { ...updated, uid: store.user.uid }, { merge: true });
+      setDoc(doc(db, path), { ...updated, uid: store.user.uid }, { merge: true }).catch((e:any) => console.error('Offline write error:', e));
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, path);
     }
@@ -599,7 +629,7 @@ export function useFirebaseStore() {
     if (!store.user) return;
     const path = `users/${store.user.uid}/debts/${id}`;
     try {
-      await deleteDoc(doc(db, path));
+      deleteDoc(doc(db, path)).catch((e:any) => console.error('Offline write error:', e));
     } catch (err) {
       handleFirestoreError(err, OperationType.DELETE, path);
     }
@@ -610,7 +640,7 @@ export function useFirebaseStore() {
     const id = Date.now().toString();
     const path = `users/${store.user.uid}/familyMembers/${id}`;
     try {
-      await setDoc(doc(db, path), { ...f, id, uid: store.user.uid });
+      setDoc(doc(db, path), { ...f, id, uid: store.user.uid }).catch((e:any) => console.error('Offline write error:', e));
     } catch (err) {
       handleFirestoreError(err, OperationType.CREATE, path);
     }
@@ -620,7 +650,7 @@ export function useFirebaseStore() {
     if (!store.user) return;
     const path = `users/${store.user.uid}/familyMembers/${id}`;
     try {
-      await deleteDoc(doc(db, path));
+      deleteDoc(doc(db, path)).catch((e:any) => console.error('Offline write error:', e));
     } catch (err) {
       handleFirestoreError(err, OperationType.DELETE, path);
     }
@@ -631,7 +661,7 @@ export function useFirebaseStore() {
     const id = Date.now().toString();
     const path = `users/${store.user.uid}/investments/${id}`;
     try {
-      await setDoc(doc(db, path), { ...inv, id, uid: store.user.uid });
+      setDoc(doc(db, path), { ...inv, id, uid: store.user.uid }).catch((e:any) => console.error('Offline write error:', e));
     } catch (err) {
       handleFirestoreError(err, OperationType.CREATE, path);
     }
@@ -641,7 +671,7 @@ export function useFirebaseStore() {
     if (!store.user) return;
     const path = `users/${store.user.uid}/investments/${id}`;
     try {
-      await setDoc(doc(db, path), updated, { merge: true });
+      setDoc(doc(db, path), updated, { merge: true }).catch((e:any) => console.error('Offline write error:', e));
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, path);
     }
@@ -651,7 +681,7 @@ export function useFirebaseStore() {
     if (!store.user) return;
     const path = `users/${store.user.uid}/investments/${id}`;
     try {
-      await deleteDoc(doc(db, path));
+      deleteDoc(doc(db, path)).catch((e:any) => console.error('Offline write error:', e));
     } catch (err) {
       handleFirestoreError(err, OperationType.DELETE, path);
     }
@@ -662,7 +692,7 @@ export function useFirebaseStore() {
     const id = Date.now().toString();
     const path = `users/${store.user.uid}/bills/${id}`;
     try {
-      await setDoc(doc(db, path), { ...b, id, uid: store.user.uid });
+      setDoc(doc(db, path), { ...b, id, uid: store.user.uid }).catch((e:any) => console.error('Offline write error:', e));
     } catch (err) {
       handleFirestoreError(err, OperationType.CREATE, path);
     }
@@ -674,7 +704,7 @@ export function useFirebaseStore() {
     try {
       const existing = store.bills.find(b => b.id === id) || {};
       const fullUpdate = { ...existing, ...updated, uid: store.user.uid };
-      await setDoc(doc(db, path), fullUpdate, { merge: true });
+      setDoc(doc(db, path), fullUpdate, { merge: true }).catch((e:any) => console.error('Offline write error:', e));
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, path);
     }
@@ -684,7 +714,7 @@ export function useFirebaseStore() {
     if (!store.user) return;
     const path = `users/${store.user.uid}/bills/${id}`;
     try {
-      await deleteDoc(doc(db, path));
+      deleteDoc(doc(db, path)).catch((e:any) => console.error('Offline write error:', e));
     } catch (err) {
       handleFirestoreError(err, OperationType.DELETE, path);
     }
@@ -694,7 +724,7 @@ export function useFirebaseStore() {
     if (!store.user) return;
     const path = `users/${store.user.uid}`;
     try {
-      await setDoc(doc(db, path), updates, { merge: true });
+      setDoc(doc(db, path), updates, { merge: true }).catch((e:any) => console.error('Offline write error:', e));
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, path);
     }
@@ -737,14 +767,14 @@ export function useFirebaseStore() {
     }
 
     try {
-      await setDoc(doc(db, path), {
+      setDoc(doc(db, path), {
         id,
         uid: store.user.uid,
         email: store.user.email,
         message,
         createdAt: new Date().toISOString(),
         ...(aiReply ? { reply: aiReply, repliedAt } : {})
-      });
+      }).catch((e:any) => console.error('Offline write error:', e));
       alert('আপনার মতামতের জন্য ধন্যবাদ!');
     } catch (err) {
       handleFirestoreError(err, OperationType.CREATE, path);
@@ -755,7 +785,7 @@ export function useFirebaseStore() {
     if (!store.user || !store.isAdmin) return;
     try {
       const docRef = doc(db, 'systemSettings', 'general');
-      await setDoc(docRef, { features: { [featureKey]: value } }, { merge: true });
+      setDoc(docRef, { features: { [featureKey]: value } }, { merge: true }).catch((e:any) => console.error('Offline write error:', e));
     } catch (err) {
       console.error('Failed to update feature', err);
     }
@@ -780,7 +810,7 @@ export function useFirebaseStore() {
     if (!window.confirm('আপনি কি নিশ্চিত যে আপনি এই ফিডব্যাকটি মুছে ফেলতে চান?')) return;
     const path = `feedback/${feedbackId}`;
     try {
-      await deleteDoc(doc(db, path));
+      deleteDoc(doc(db, path)).catch((e:any) => console.error('Offline write error:', e));
     } catch (err) {
       handleFirestoreError(err, OperationType.DELETE, path);
     }
@@ -804,10 +834,10 @@ export function useFirebaseStore() {
           const collections = ['transactions', 'categories', 'budgets', 'savingsGoals', 'recurring', 'debts', 'familyMembers', 'investments', 'bills', 'chatHistory'];
           for (const coll of collections) {
             const snap = await getDocs(collection(db, `users/${currentUser.uid}/${coll}`));
-            const promises = snap.docs.map(d => deleteDoc(d.ref));
+            const promises = snap.docs.map(d => deleteDoc(d.ref).catch((e:any) => console.error('Offline write error:', e)));
             await Promise.all(promises);
           }
-          await deleteDoc(doc(db, 'users', currentUser.uid));
+          deleteDoc(doc(db, 'users', currentUser.uid)).catch((e:any) => console.error('Offline write error:', e));
           await deleteUser(currentUser);
         } catch(e: any) {
              throw e;

@@ -169,6 +169,7 @@ import {
 import { auth, db, handleFirestoreError, OperationType } from '../../firebase';
 import { cn } from '../../lib/utils';
 import { Type } from '@google/genai';
+import { useShallow } from 'zustand/react/shallow';
 import { useAppStore } from '../../store/useAppStore';
 import { Transaction, Category, Budget, TransactionType, SavingsGoal, RecurringTransaction, Debt, FamilyMember, Investment, Bill, SystemFeatures } from '../../types';
 import { DEFAULT_CATEGORIES } from '../../constants';
@@ -190,7 +191,7 @@ export default function TransactionModal({ onClose, onSave, categories, initialD
   familyMembers?: FamilyMember[],
   isPremium?: boolean
 }) {
-  const { language } = useAppStore();
+  const { language } = useAppStore(useShallow(state => ({ language: state.language })));
   const [type, setType] = useState<TransactionType>(initialData?.type || 'expense');
   const [amount, setAmount] = useState(initialData?.amount.toString() || '');
   const [categoryId, setCategoryId] = useState(initialData?.categoryId || categories.find(c => c.type === type)?.id || '');

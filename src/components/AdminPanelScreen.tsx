@@ -30,6 +30,7 @@ import { format, parseISO } from 'date-fns';
 import { auth, db, handleFirestoreError, OperationType } from '../firebase';
 import { collection, getDocs, doc, query, orderBy, addDoc, serverTimestamp, deleteDoc, updateDoc, onSnapshot, setDoc, limit, startAfter, collectionGroup, getAggregateFromServer, sum, count, where } from 'firebase/firestore';
 import { SystemFeatures } from '../types';
+import { useShallow } from 'zustand/react/shallow';
 import { useAppStore } from '../store/useAppStore';
 
 interface AdminPanelProps {
@@ -45,7 +46,7 @@ interface AdminPanelProps {
 }
 
 export function AdminPanelScreen({ feedback, onSubmitReply, onDeleteFeedback, features, onToggleFeature }: AdminPanelProps) {
-  const { isDarkMode, language, transactions, currency, adminPin, setAdminPin } = useAppStore();
+  const { isDarkMode, language, transactions, currency, adminPin, setAdminPin } = useAppStore(useShallow(state => ({ isDarkMode: state.isDarkMode, language: state.language, transactions: state.transactions, currency: state.currency, adminPin: state.adminPin, setAdminPin: state.setAdminPin })));
   const [activeTab, setActiveTab] = useState<'analytics' | 'users' | 'announcements' | 'feedback' | 'settings' | 'reports' | 'security' | 'data_management' | 'features'>('analytics');
   const [newAdminPin, setNewAdminPin] = useState('');
   

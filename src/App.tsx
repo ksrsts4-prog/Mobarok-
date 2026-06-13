@@ -111,23 +111,6 @@ import {
   Receipt
 } from 'lucide-react';
 import { 
-  LineChart, 
-  Line, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  AreaChart,
-  Area,
-  BarChart,
-  Bar,
-  Legend
-} from 'recharts';
-import { 
   format, 
   startOfMonth, 
   endOfMonth, 
@@ -143,11 +126,6 @@ import {
   subDays
 } from 'date-fns';
 import { motion, AnimatePresence } from 'motion/react';
-import { Virtuoso } from 'react-virtuoso';
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import * as XLSX from 'xlsx';
-import { exportToPDF } from './lib/pdfExport';
 import { 
   onAuthStateChanged, 
   signInWithPopup, 
@@ -175,27 +153,11 @@ import {
 } from 'firebase/firestore';
 import { auth, db, handleFirestoreError, OperationType } from './firebase';
 import { cn } from './lib/utils';
-import { Type } from '@google/genai';
 import { useAppStore } from './store/useAppStore';
 import { ErrorBoundary as ComponentErrorBoundary } from './components/ui/ErrorBoundary';
 
-import { AIChatbot } from './components/AIChatbot';
 import PWAPrompt from './components/PWAPrompt';
-import { BudgetAIAssistant } from './components/BudgetAIAssistant';
-import { AIFinancialSummary } from './components/AIFinancialSummary';
-import { RecurringTransactionsScreen } from './components/RecurringTransactionsScreen';
-import { DebtsScreen } from './components/DebtsScreen';
-import { FamilyBudgetScreen } from './components/FamilyBudgetScreen';
-import { BillsScreen } from './components/BillsScreen';
-import { InvestmentsScreen } from './components/InvestmentsScreen';
-import { ForecastingScreen } from './components/ForecastingScreen';
-import { GamificationScreen } from './components/GamificationScreen';
-import { SplitBillsScreen } from './components/SplitBillsScreen';
-import { AdminPanelScreen } from './components/AdminPanelScreen';
-import AboutScreen from './components/AboutScreen';
 import { PageSkeleton } from './components/PageSkeleton';
-import { WelcomeScreen } from './components/auth/WelcomeScreen';
-import { LockScreen } from './components/auth/LockScreen';
 import { Sidebar } from './components/layout/Sidebar';
 import { MobileNav } from './components/layout/MobileNav';
 import { Header } from './components/layout/Header';
@@ -273,7 +235,31 @@ const SettingsScreen = React.lazy(() => import('./components/screens/SettingsScr
 const Savings = React.lazy(() => import('./components/screens/Savings'));
 const SavingsGoalModal = React.lazy(() => import('./components/screens/SavingsGoalModal'));
 const AdminPinUnlockScreen = React.lazy(() => import('./components/screens/AdminPinUnlockScreen'));
-import { QuickAddTransaction } from './components/screens/QuickAddTransaction';
+const QuickAddTransaction = React.lazy(() => import('./components/screens/QuickAddTransaction').then(m => ({ default: m.QuickAddTransaction })));
+
+// --- Lightweight Fallback Loader for Low-End Devices (Redmi 9A / Helio G25) ---
+const LightweightLoader = () => (
+  <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 w-full">
+    <div className="w-10 h-10 border-4 border-[#3b82f6] border-t-transparent rounded-full animate-spin shadow-sm"></div>
+    <p className="text-[#3b82f6] font-medium text-sm animate-pulse">লোড হচ্ছে...</p>
+  </div>
+);
+
+// --- Lazy Loaded Screens for Code Splitting ---
+const AIChatbot = React.lazy(() => import('./components/AIChatbot').then(m => ({ default: m.AIChatbot })));
+const RecurringTransactionsScreen = React.lazy(() => import('./components/RecurringTransactionsScreen').then(m => ({ default: m.RecurringTransactionsScreen })));
+const DebtsScreen = React.lazy(() => import('./components/DebtsScreen').then(m => ({ default: m.DebtsScreen })));
+const FamilyBudgetScreen = React.lazy(() => import('./components/FamilyBudgetScreen').then(m => ({ default: m.FamilyBudgetScreen })));
+const BillsScreen = React.lazy(() => import('./components/BillsScreen').then(m => ({ default: m.BillsScreen })));
+const InvestmentsScreen = React.lazy(() => import('./components/InvestmentsScreen').then(m => ({ default: m.InvestmentsScreen })));
+const ForecastingScreen = React.lazy(() => import('./components/ForecastingScreen').then(m => ({ default: m.ForecastingScreen })));
+const GamificationScreen = React.lazy(() => import('./components/GamificationScreen').then(m => ({ default: m.GamificationScreen })));
+const SplitBillsScreen = React.lazy(() => import('./components/SplitBillsScreen').then(m => ({ default: m.SplitBillsScreen })));
+const AdminPanelScreen = React.lazy(() => import('./components/AdminPanelScreen').then(m => ({ default: m.AdminPanelScreen })));
+const AboutScreen = React.lazy(() => import('./components/AboutScreen'));
+const WelcomeScreen = React.lazy(() => import('./components/auth/WelcomeScreen').then(m => ({ default: m.WelcomeScreen })));
+const LockScreen = React.lazy(() => import('./components/auth/LockScreen').then(m => ({ default: m.LockScreen })));
+
 
 // --- Icons Mapping ---
 const iconMap: Record<string, any> = {
@@ -373,33 +359,35 @@ function App() {
     submitFeedback, deleteFeedback, submitFeedbackReply, toggleSystemFeature, lastBackupTime, setLastBackupTime
   } = useFirebaseStore();
 
-  const {
-    user, isAdmin, transactions, categories, budgets, savingsGoals, 
-    recurringTransactions, debts, familyMembers, investments, bills,
-    currency, language, isDarkMode, accentColor, showDecimals, aiInstructions, 
-    systemFeatures, defaultTransactionType, weekStartDay, autoBackup,
-    setLanguage, setCurrency, setIsDarkMode, setAccentColor, setShowDecimals,
-    setDefaultTransactionType, setWeekStartDay, setAiInstructions, setAutoBackup,
-    setTransactions, setCategories, setBudgets, setSavingsGoals, setRecurringTransactions,
-    setDebts, setFamilyMembers
-  } = useAppStore(useShallow((state) => ({
-    user: state.user, isAdmin: state.isAdmin, transactions: state.transactions,
-    categories: state.categories, budgets: state.budgets, savingsGoals: state.savingsGoals,
-    recurringTransactions: state.recurringTransactions, debts: state.debts,
-    familyMembers: state.familyMembers, investments: state.investments, bills: state.bills,
-    currency: state.currency, language: state.language, isDarkMode: state.isDarkMode,
-    accentColor: state.accentColor, showDecimals: state.showDecimals, aiInstructions: state.aiInstructions,
-    systemFeatures: state.systemFeatures, defaultTransactionType: state.defaultTransactionType,
-    weekStartDay: state.weekStartDay, autoBackup: state.autoBackup,
+
+  // --- ZUSTAND PERFORMANCE OPTIMIZATION ---
+  // Why: Fetching 40+ states in a single block triggered re-renders on the massive App.tsx component tree
+  // even if a non-active tab's state changed.
+  // How: Separating core config from heavy data arrays ensures that changes to one chunk (like a new transaction)
+  // do not needlessly force re-evaluations across unrelated slices.
+  const { user, isAdmin, currency, language, isDarkMode, accentColor, showDecimals, autoBackup, aiInstructions, systemFeatures, defaultTransactionType, weekStartDay } = useAppStore(useShallow(state => ({
+    user: state.user, isAdmin: state.isAdmin, currency: state.currency, language: state.language,
+    isDarkMode: state.isDarkMode, accentColor: state.accentColor, showDecimals: state.showDecimals,
+    autoBackup: state.autoBackup, aiInstructions: state.aiInstructions, systemFeatures: state.systemFeatures,
+    defaultTransactionType: state.defaultTransactionType, weekStartDay: state.weekStartDay
+  })));
+
+  const { transactions, categories, budgets, savingsGoals, recurringTransactions, debts, familyMembers, investments, bills } = useAppStore(useShallow(state => ({
+    transactions: state.transactions, categories: state.categories, budgets: state.budgets,
+    savingsGoals: state.savingsGoals, recurringTransactions: state.recurringTransactions, debts: state.debts,
+    familyMembers: state.familyMembers, investments: state.investments, bills: state.bills
+  })));
+
+  const { setLanguage, setCurrency, setIsDarkMode, setAccentColor, setShowDecimals, setDefaultTransactionType, setWeekStartDay, setAiInstructions, setAutoBackup, setTransactions, setCategories, setBudgets, setSavingsGoals, setRecurringTransactions, setDebts, setFamilyMembers } = useAppStore(useShallow(state => ({
     setLanguage: state.setLanguage, setCurrency: state.setCurrency, setIsDarkMode: state.setIsDarkMode,
     setAccentColor: state.setAccentColor, setShowDecimals: state.setShowDecimals,
     setDefaultTransactionType: state.setDefaultTransactionType, setWeekStartDay: state.setWeekStartDay,
     setAiInstructions: state.setAiInstructions, setAutoBackup: state.setAutoBackup,
-    setTransactions: state.setTransactions, setCategories: state.setCategories,
-    setBudgets: state.setBudgets, setSavingsGoals: state.setSavingsGoals,
-    setRecurringTransactions: state.setRecurringTransactions, setDebts: state.setDebts,
-    setFamilyMembers: state.setFamilyMembers
+    setTransactions: state.setTransactions, setCategories: state.setCategories, setBudgets: state.setBudgets,
+    setSavingsGoals: state.setSavingsGoals, setRecurringTransactions: state.setRecurringTransactions,
+    setDebts: state.setDebts, setFamilyMembers: state.setFamilyMembers
   })));
+
 
   const formatAmount = (amount: number) => {
     return amount.toLocaleString(undefined, {
@@ -497,17 +485,17 @@ function App() {
 
   if (!user) {
     return (
-      <WelcomeScreen 
+      <React.Suspense fallback={<LightweightLoader />}><WelcomeScreen 
         handleLogin={handleLogin}
         isLoggingIn={isLoggingIn}
         loginError={loginError}
-      />
+      /></React.Suspense>
     );
   }
 
   if (isAppLocked && pinCode) {
     return (
-      <LockScreen
+      <React.Suspense fallback={<LightweightLoader />}><LockScreen
         pinCode={pinCode}
         isDarkMode={isDarkMode}
         language={language}
@@ -517,7 +505,7 @@ function App() {
         setPinCode={setPinCode}
         updateSettings={updateSettings}
         handleBiometricAuth={handleBiometricAuth}
-      />
+      /></React.Suspense>
     );
   }
 
@@ -642,7 +630,7 @@ function App() {
         />
 
         <div className="px-6 max-w-7xl mx-auto">
-          <React.Suspense fallback={<PageSkeleton />}>
+          <React.Suspense fallback={<LightweightLoader />}>
             <AnimatePresence mode="wait">
               <ComponentErrorBoundary key={activeTab} name={`Screen_${activeTab}`}>
                 {activeTab === 'dashboard' && (
